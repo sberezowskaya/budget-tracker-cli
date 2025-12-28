@@ -81,3 +81,12 @@ allTransactions.forEach(transaction => {
 });
 
 console.log("\nПроверка классов и ООП завершена!");
+
+// Импортируем и тестируем generics
+import { testGenerics } from './generics';
+
+console.log("\n" + "=".repeat(60));
+console.log("НАЧАЛО ТЕСТИРОВАНИЯ GENERICS");
+console.log("=".repeat(60));
+
+testGenerics();
