@@ -6,7 +6,7 @@ const netIncome: number = income - expenses;        // чистый доход
 const remaining: number = netIncome - savings;      // оставшаяся сумма
 
 // Вывод всех переменных в консоль
-console.log("💰 Budget Calculations:");
+console.log("Budget Calculations:");
 console.log("=======================");
 console.log(`Общий доход: ${income} руб.`);
 console.log(`Общая сумма расходов: ${expenses} руб.`);
