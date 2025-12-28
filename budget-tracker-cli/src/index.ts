@@ -1,147 +1,83 @@
-import { IAccount, ITransaction, IAccountManager, TransactionType, ISummary } from './types';
+import { Account, Transaction, AccountManager } from './classes';
 import './calculation-demo';
 import './functions';
 
-console.log("Budget Tracker CLI - Проверка интерфейсов и типов");
-console.log("=================================================\n");
+console.log("Budget Tracker CLI - Проверка классов и ООП");
+console.log("===========================================\n");
 
-// 1. Создать реализацию IAccount
-const myAccount: IAccount = {
-    id: 1,
-    name: "Основной счёт",
-    transactions: [] as ITransaction[],
-    
-    addTransaction(transaction: ITransaction): void {
-        this.transactions!.push(transaction);
-        console.log(`Транзакция "${transaction.description}" добавлена.`);
-    },
-    
-    removeTransactionById(transactionId: number): boolean {
-        const initialLength = this.transactions!.length;
-        this.transactions = this.transactions!.filter((t: ITransaction) => t.id !== transactionId);
-        const removed = initialLength > this.transactions!.length;
-        if (removed) {
-            console.log(`Транзакция с ID ${transactionId} удалена.`);
-        }
-        return removed;
-    },
-    
-    getTransactions(): ITransaction[] {
-        return this.transactions!;
-    }
-};
+// 1. Создать менеджер счетов
+const manager = new AccountManager();
 
-// 2. Создать транзакции
-const transaction1: ITransaction = {
-    id: 101,
-    amount: 50000,
-    type: "income",
-    date: "2024-12-01",
-    description: "Зарплата"
-};
+// 2. Создать счета
+const mainAccount = new Account(1, "Основной счёт");
+const savingsAccount = new Account(2, "Накопительный счёт");
 
-const transaction2: ITransaction = {
-    id: 102,
-    amount: 15000,
-    type: "expense",
-    date: "2024-12-02",
-    description: "Аренда квартиры"
-};
+// 3. Создать транзакции
+const salary = new Transaction(101, 50000, "income", "2024-12-01", "Зарплата");
+const rent = new Transaction(102, 15000, "expense", "2024-12-02", "Аренда квартиры");
+const groceries = new Transaction(103, 5000, "expense", "2024-12-03", "Продукты");
+const bonus = new Transaction(104, 10000, "income", "2024-12-04", "Премия");
+const transfer = new Transaction(105, 8000, "expense", "2024-12-05", "Перевод на накопительный");
 
-const transaction3: ITransaction = {
-    id: 103,
-    amount: 5000,
-    type: "expense",
-    date: "2024-12-03",
-    description: "Продукты"
-};
+// 4. Добавить транзакции на основной счёт
+console.log("=== Добавление транзакций ===\n");
+mainAccount.addTransaction(salary);
+mainAccount.addTransaction(rent);
+mainAccount.addTransaction(groceries);
+mainAccount.addTransaction(bonus);
+mainAccount.addTransaction(transfer);
 
-// 3. Создать реализацию IAccountManager
-const accountManager: IAccountManager = {
-    accounts: [] as IAccount[],
-    
-    addAccount(account: IAccount): void {
-        this.accounts!.push(account);
-        console.log(`Счёт "${account.name}" добавлен.`);
-    },
-    
-    removeAccountById(accountId: number): boolean {
-        const initialLength = this.accounts!.length;
-        this.accounts = this.accounts!.filter((a: IAccount) => a.id !== accountId);
-        const removed = initialLength > this.accounts!.length;
-        if (removed) {
-            console.log(`Счёт с ID ${accountId} удалён.`);
-        }
-        return removed;
-    },
-    
-    getAccounts(): IAccount[] {
-        return this.accounts!;
-    },
-    
-    getAccountById(id: number): IAccount | undefined {
-        return this.accounts!.find((account: IAccount) => account.id === id);
-    },
-    
-    getSummary(accountId: number): ISummary {
-        const account = this.getAccountById(accountId);
-        if (!account) {
-            throw new Error(`Счёт с ID ${accountId} не найден`);
-        }
-        
-        const transactions = account.getTransactions();
-        let income = 0;
-        let expenses = 0;
-        
-        transactions.forEach((transaction: ITransaction) => {
-            if (transaction.type === "income") {
-                income += transaction.amount;
-            } else {
-                expenses += transaction.amount;
-            }
-        });
-        
-        return {
-            income,
-            expenses,
-            balance: income - expenses
-        };
-    }
-};
+// 5. Создать транзакции для накопительного счёта
+const deposit = new Transaction(201, 8000, "income", "2024-12-05", "Перевод с основного счёта");
+savingsAccount.addTransaction(deposit);
 
-// 4. Проверка работы
-console.log("=== Тестирование работы интерфейсов ===\n");
+// 6. Добавить счета в менеджер
+console.log("=== Добавление счетов ===\n");
+manager.addAccount(mainAccount);
+manager.addAccount(savingsAccount);
 
-// Добавить счёт
-accountManager.addAccount(myAccount);
+// 7. Проверить геттеры и методы
+console.log("=== Проверка геттеров ===\n");
+console.log(`Баланс основного счёта: ${mainAccount.balance} руб.`);
+console.log(`Доходы основного счёта: ${mainAccount.income} руб.`);
+console.log(`Расходы основного счёта: ${mainAccount.expenses} руб.\n`);
 
-// Добавить транзакции
-myAccount.addTransaction(transaction1);
-myAccount.addTransaction(transaction2);
-myAccount.addTransaction(transaction3);
+// 8. Проверить сводки
+console.log("=== Сводки по счетам ===\n");
+console.log(mainAccount.getSummaryString());
+console.log(savingsAccount.getSummaryString());
+console.log();
 
-// Получить сводку
-const summary = accountManager.getSummary(1);
-console.log("\n=== Сводка по счёту ===");
-console.log(`Доходы: ${summary.income} руб.`);
-console.log(`Расходы: ${summary.expenses} руб.`);
-console.log(`Баланс: ${summary.balance} руб.\n`);
+// 9. Проверить строковые представления
+console.log("=== Строковые представления ===\n");
+console.log("Транзакция:", salary.toString());
+console.log("\nСчёт:");
+console.log(mainAccount.toString());
 
-// Показать все транзакции
-console.log("=== Все транзакции ===");
-myAccount.getTransactions().forEach((transaction: ITransaction) => {
-    console.log(`${transaction.id}: ${transaction.description} - ${transaction.amount} руб. (${transaction.type})`);
+// 10. Проверить менеджер
+console.log("=== Работа AccountManager ===\n");
+console.log(manager.getSummaryString());
+console.log("\n" + manager.toString());
+
+// 11. тест удаление
+console.log("=== Тестирование удаления ===\n");
+const removed = mainAccount.removeTransactionById(102);
+console.log(`Удалена транзакция с ID 102: ${removed ? 'Да' : 'Нет'}`);
+console.log(`Новый баланс основного счёта: ${mainAccount.balance} руб.`);
+
+// 12. Получить счёт по ID
+console.log("\n=== Поиск счёта по ID ===\n");
+const foundAccount = manager.getAccountById(2);
+if (foundAccount) {
+    console.log(`Найден счёт: ${foundAccount.name}`);
+    console.log(foundAccount.getSummaryString());
+}
+
+// 13. Получить все транзакции
+console.log("\n=== Все транзакции основного счёта ===\n");
+const allTransactions = mainAccount.getTransactions();
+allTransactions.forEach(transaction => {
+    console.log(`  ${transaction.toString()}`);
 });
 
-// Удалить транзакцию
-console.log("\n=== Удаление транзакции ===");
-myAccount.removeTransactionById(102);
-
-// Новая сводка после удаления
-const newSummary = accountManager.getSummary(1);
-console.log("\n=== Новая сводка после удаления ===");
-console.log(`Доходы: ${newSummary.income} руб.`);
-console.log(`Расходы: ${newSummary.expenses} руб.`);
-console.log(`Баланс: ${newSummary.balance} руб.`);
-
-console.log("\nПроверка интерфейсов завершена!");
+console.log("\nПроверка классов и ООП завершена!");

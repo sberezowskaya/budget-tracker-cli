@@ -8,6 +8,7 @@ export interface ITransaction {
     type: TransactionType;
     date: string;
     description: string;
+    toString(): string; // метод для строкового представления
 }
 
 // 3. Интерфейс IAccount
@@ -19,6 +20,7 @@ export interface IAccount {
     addTransaction(transaction: ITransaction): void;
     removeTransactionById(transactionId: number): boolean;
     getTransactions(): ITransaction[];
+    getSummary(): ISummary; //  метод для сводки
 }
 
 // 4. Интерфейс ISummary
