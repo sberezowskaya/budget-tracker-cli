@@ -1,16 +1,29 @@
-import { Transaction } from './Transaction';
+import { IAccount } from '../interfaces/IAccount.js';
+import { ISummary } from '../interfaces/ISummary.js';
+import { Transaction } from './Transaction.js';
+import { AccountUpdate } from '../interfaces/utility-types.js';
 import { v4 as uuidv4 } from 'uuid';
 
-export class Account {
+export class Account implements IAccount {
     private _transactions: Transaction[] = [];
-    public readonly id: string;
+    public id: string;
+    public name: string; 
 
     constructor(
-        public name: string
+        name: string
     ) {
         this.id = uuidv4();
+        this.name = name;
     }
 
+    // Метод для обновления счёта
+    update(update: AccountUpdate): void {
+        if (update.name !== undefined) {
+            this.name = update.name;
+        }
+    }
+
+    // Геттеры
     get income(): number {
         return this._transactions
             .filter(t => t.type === 'income')
@@ -27,6 +40,11 @@ export class Account {
         return this.income - this.expenses;
     }
 
+    get transactions(): Transaction[] {
+        return [...this._transactions];
+    }
+
+    // Методы интерфейса IAccount
     addTransaction(transaction: Transaction): void {
         this._transactions.push(transaction);
     }
@@ -41,11 +59,19 @@ export class Account {
         return [...this._transactions];
     }
 
-    getSummary() {
+    getSummary(): ISummary {
         return {
             income: this.income,
             expenses: this.expenses,
             balance: this.balance
+        };
+    }
+
+    // Получение информации о счёте
+    getInfo(): { id: string; name: string } {
+        return {
+            id: this.id,
+            name: this.name
         };
     }
 }

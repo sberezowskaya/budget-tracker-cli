@@ -1,7 +1,9 @@
+import { TransactionType } from './TransactionType.js';
+
 export interface ITransaction {
     id: string;
     amount: number;
-    type: "income" | "expense";
+    type: TransactionType;
     date: string;
     description: string;
     toString(): string;

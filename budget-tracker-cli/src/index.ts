@@ -1,75 +1,156 @@
-import { v4 as uuidv4 } from 'uuid';
-import moment from 'moment';
+import { Account } from './classes/Account.js';
+import { Transaction } from './classes/Transaction.js';
+import { AccountManager } from './classes/AccountManager.js';
 
-// 1. Declaration file для JavaScript библиотеки
-declare module './lib/budget-utils.js' {
-    export function formatCurrency(amount: number, symbol?: string): string;
-    export function parseDate(dateString: string): string;
-}
+// Импортировать утилитные типы
+import {
+    TransactionUpdate,
+    AccountUpdate,
+    CompleteTransaction,
+    TransactionWithoutDescription,
+    TransactionPreview,
+    AccountInfo,
+    CategoryLimits,
+    TransactionConstructorParams,
+    TransactionInstance,
+    NullableDescription,
+    TransactionFilter
+} from './interfaces/utility-types.js';
 
-// 2. Импорт JavaScript библиотеки (нетипизированной, но с declaration)
-import { formatCurrency } from './lib/budget-utils.js';
+console.log("=".repeat(70));
+console.log("ДОМАШНЯЯ РАБОТА №9: Утилитные типы TypeScript");
+console.log("=".repeat(70));
 
-// ==================== ЧАСТЬ 1: UUID ====================
-console.log("\nЧАСТЬ 1: UUID (генерировать уникальные ID)");
+// ==================== 1. Частичное обновление ====================
+console.log("\n1. Частичное обновление (Partial<T>)");
 console.log("   ".repeat(10) + "-".repeat(40));
 
-const transactionId = uuidv4();
-const accountId = uuidv4();
+const transaction = new Transaction(1000, 'income', '2023-01-01T00:00:00Z', 'Зарплата');
+console.log("   Исходная транзакция:");
+console.log(`   ${transaction.toString()}`);
 
-console.log(`   • transactionId: ${transactionId}`);
-console.log(`   • accountId: ${accountId}`);
-console.log(`   • Тип: ${typeof transactionId}`);
-console.log(`   • Длина UUID: ${transactionId.length} символов`);
-
-// ==================== ЧАСТЬ 2: Moment ====================
-console.log("\nЧАСТЬ 2: Moment (работа с датами)");
-console.log("   ".repeat(10) + "-".repeat(40));
-
-const now = moment();
-const transactionDate = moment('2024-12-28');
-
-console.log(`   • Текущая дата: ${now.format('LL')}`);
-console.log(`   • Текущее время: ${now.format('LT')}`);
-console.log(`   • Дата транзакции: ${transactionDate.format('dddd, MMMM Do YYYY')}`);
-console.log(`   • Разница: ${transactionDate.fromNow()}`);
-
-// ==================== ЧАСТЬ 3: Наша библиотека ====================
-console.log("\nЧАСТЬ 3: Наша библиотека budget-utils.js с declaration file");
-console.log("   ".repeat(10) + "-".repeat(40));
-
-const amounts = [1234.56, 7890.12, 456.78];
-amounts.forEach(amount => {
-    console.log(`   • ${amount} → ${formatCurrency(amount)}`);
-});
-
-console.log(`   • 1000 USD → ${formatCurrency(1000, '$')}`);
-console.log(`   • 500 EUR → ${formatCurrency(500, '€')}`);
-
-// ==================== ЧАСТЬ 4: Интеграция ====================
-console.log("\nЧАСТЬ 4: Интеграция всего вместе (имитация транзакции)");
-console.log("   ".repeat(10) + "-".repeat(40));
-
-// Создаём "транзакцию" используя все библиотеки
-const transaction = {
-    id: uuidv4(),
-    amount: 50000.75,
-    type: "income" as const,
-    date: moment().format('YYYY-MM-DD'),
-    description: "Зарплата за декабрь",
-    category: "Доходы"
+// Используем Partial<ITransaction>
+const transactionUpdate: TransactionUpdate = {
+    amount: 1200,
+    description: 'Зарплата с премией'
 };
 
-console.log("ИНФОРМАЦИЯ О ТРАНЗАКЦИИ:");
-console.log(`     ID: ${transaction.id}`);
-console.log(`     Дата: ${moment(transaction.date).format('LL')}`);
-console.log(`     Сумма: ${formatCurrency(transaction.amount)}`);
-console.log(`     Описание: ${transaction.description}`);
-console.log(`     Тип: ${transaction.type}`);
+transaction.update(transactionUpdate);
+console.log("\n   После обновления через TransactionUpdate:");
+console.log(`   ${transaction.toString()}`);
 
-// ==================== ЧАСТЬ 5: Проверка типов ====================
-console.log("\nЧАСТЬ 5: Проверка TypeScript типов");
+// Обновление счёта
+const personalAccount = new Account('Личный бюджет');
+console.log(`\n   Исходный счёт: ${personalAccount.name}`);
+
+const accountUpdate: AccountUpdate = {
+    name: 'Основной счёт'
+};
+
+personalAccount.update(accountUpdate);
+console.log(`   После обновления через AccountUpdate: ${personalAccount.name}`);
+
+// ==================== 2. Обязательные поля и исключения ====================
+console.log("\n2. Обязательные поля и исключения (Required<T>, Omit<T>)");
 console.log("   ".repeat(10) + "-".repeat(40));
 
-console.log("  UUID: строка (string)");
-console.log("  formatCurrency: (number, string?) => string");
+// Required - все поля обязательны
+const completeTransaction: CompleteTransaction = {
+    id: '123',
+    amount: 500,
+    type: 'expense',
+    date: '2023-01-05',
+    description: 'Продукты',
+    toString: () => 'Транзакция'
+};
+console.log(`   CompleteTransaction: ${completeTransaction.description}`);
+
+const transactionWithoutDesc: TransactionWithoutDescription = {
+    id: '456',
+    amount: 300,
+    type: 'expense',
+    date: '2023-01-06'
+};
+console.log(`   TransactionWithoutDescription: ${transactionWithoutDesc.amount}`);
+
+// ==================== 3. Выборка ключевых полей ====================
+console.log("\n3. Выборка ключевых полей (Pick<T>)");
+console.log("   ".repeat(10) + "-".repeat(40));
+
+const transactionPreview: TransactionPreview = transaction.getPreview();
+console.log(`   TransactionPreview:`, transactionPreview);
+
+const accountInfo: AccountInfo = personalAccount.getInfo();
+console.log(`   AccountInfo:`, accountInfo);
+
+// ==================== 4. Словарь лимитов (Record<K, T>) ====================
+console.log("\n4. Словарь лимитов по категориям (Record<K, T>)");
+console.log("   ".repeat(10) + "-".repeat(40));
+
+const limits: CategoryLimits = {
+    income: 10000,
+    expense: 5000
+};
+console.log(`   Лимит доходов: ${limits.income}`);
+console.log(`   Лимит расходов: ${limits.expense}`);
+
+// Проверка лимита
+const checkLimit = (amount: number, type: 'income' | 'expense'): boolean => {
+    return amount <= limits[type];
+};
+
+console.log(`   Проверка лимита (1500 доход): ${checkLimit(1500, 'income')}`);
+console.log(`   Проверка лимита (6000 расход): ${checkLimit(6000, 'expense')}`);
+
+// ==================== 5. Работа с типами функций ====================
+console.log("\n5. Работа с типами функций (ConstructorParameters, InstanceType)");
+console.log("   ".repeat(10) + "-".repeat(40));
+
+// Параметры конструктора Transaction
+const transactionParams: TransactionConstructorParams = [
+    500,
+    'expense',
+    '2023-02-01T00:00:00Z',
+    'Покупка'
+];
+
+// Создать транзакцию из параметров
+const newTransaction: TransactionInstance = new Transaction(...transactionParams);
+console.log(`   Новая транзакция из параметров: ${newTransaction.toString()}`);
+
+// ==================== 6. Необязательные и nullable поля ====================
+console.log("\n6. Необязательные и nullable поля");
+console.log("   ".repeat(10) + "-".repeat(40));
+
+const nullableDesc: NullableDescription = {
+    description: null
+};
+console.log(`   NullableDescription: ${nullableDesc.description}`);
+
+// ==================== 7. Дополнительные примеры ====================
+console.log("\n7. Дополнительные примеры");
+console.log("   ".repeat(10) + "-".repeat(40));
+
+// Filter транзакций
+const filter: TransactionFilter = {
+    type: 'expense'
+};
+
+console.log(`   TransactionFilter:`, filter);
+
+// Работа с менеджером счетов
+const manager = new AccountManager();
+personalAccount.addTransaction(transaction);
+personalAccount.addTransaction(new Transaction(200, 'expense', '2023-01-05T00:00:00Z', 'Продукты'));
+personalAccount.addTransaction(new Transaction(150, 'expense', '2023-01-09T00:00:00Z', 'Коммунальные услуги'));
+
+manager.addAccount(personalAccount);
+
+console.log("\n   Информация о счёте через AccountManager:");
+console.log(`   Баланс: ${manager.balance}`);
+console.log(`   Всего счетов: ${manager.getAccounts().length}`);
+
+console.log("\n   Транзакции основного счёта:");
+personalAccount.getTransactions().forEach((t, i) => {
+    console.log(`   ${i + 1}. ${t.toString()}`);
+});

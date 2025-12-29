@@ -1,8 +1,11 @@
-import { Account } from './Account';
+import { IAccountManager } from '../interfaces/IAccountManager.js';
+import { ISummary } from '../interfaces/ISummary.js';
+import { Account } from './Account.js';
 
-export class AccountManager {
+export class AccountManager implements IAccountManager {
     private _accounts: Account[] = [];
 
+    // Геттеры
     get income(): number {
         return this._accounts.reduce((sum, account) => sum + account.income, 0);
     }
@@ -15,6 +18,11 @@ export class AccountManager {
         return this.income - this.expenses;
     }
 
+    get accounts(): Account[] {
+        return [...this._accounts];
+    }
+
+    // Методы интерфейса IAccountManager
     addAccount(account: Account): void {
         this._accounts.push(account);
     }
@@ -33,7 +41,7 @@ export class AccountManager {
         return this._accounts.find(account => account.id === id);
     }
 
-    getSummary(accountId: string) {
+    getSummary(accountId: string): ISummary {
         const account = this.getAccountById(accountId);
         if (!account) {
             throw new Error(`Счёт с ID ${accountId} не найден`);
