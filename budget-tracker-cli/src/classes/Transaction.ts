@@ -1,12 +1,19 @@
-import { ITransaction } from '../interfaces/ITransaction.js';
+import { ITransaction, TransactionType } from '../interfaces/index.js';
 import { TransactionUpdate } from '../interfaces/utility-types.js';
 import { v4 as uuidv4 } from 'uuid';
 import moment from 'moment';
-import { TransactionType } from '../interfaces/TransactionType.js';
 
+// Импортировать декораторы
+import { LogClass } from '../decorators/LogClass.js';
+import { LogMethod } from '../decorators/LogMethod.js';
+import { ReadOnly } from '../decorators/ReadOnly.js';
+import '../decorators/reflect-metadata.js';
 
+@LogClass
 export class Transaction implements ITransaction {
-    public id: string; 
+    @ReadOnly
+    public id: string;
+    
     public amount: number;
     public type: TransactionType;
     public date: string;
@@ -25,10 +32,10 @@ export class Transaction implements ITransaction {
         this.description = description;
     }
 
-    // Метод для обновления транзакции
+    @LogMethod
     update(update: TransactionUpdate): void {
         if (update.id !== undefined) {
-            this.id = update.id;
+            console.log(`Попытка изменить id транзакции (игнорируется)`);
         }
         if (update.amount !== undefined) {
             this.amount = update.amount;
@@ -50,7 +57,6 @@ export class Transaction implements ITransaction {
         return `[${formattedDate}] ${sign}${this.amount.toFixed(2)} руб. - ${this.description} (ID: ${this.id})`;
     }
 
-    // Метод для получения превью
     getPreview(): { id: string; amount: number; type: TransactionType; date: string } {
         return {
             id: this.id,

@@ -6,10 +6,27 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import { escapeCsvValue } from '../utils/escapeCsvValue.js';
 
+// Импортировать декораторы
+import { LogClass } from '../decorators/LogClass.js';
+import { LogMethod } from '../decorators/LogMethod.js';
+import { ReadOnly } from '../decorators/ReadOnly.js';
+import { Description, getMetadata } from '../decorators/Metadata.js';
+import '../decorators/reflect-metadata.js';
+
+@LogClass
 export class Account implements IAccount {
     private _transactions: Transaction[] = [];
+    
+    @ReadOnly
     public id: string;
+    
+    @ReadOnly
     public name: string;
+    
+    @Description('Массив транзакций счета')
+    private get transactionsProperty() {
+        return this._transactions;
+    }
 
     constructor(
         name: string
@@ -20,11 +37,10 @@ export class Account implements IAccount {
 
     update(update: AccountUpdate): void {
         if (update.name !== undefined) {
-            this.name = update.name;
+            console.log(`Попытка изменить имя счета с "${this.name}" на "${update.name}" (игнорируется)`);
         }
     }
 
-    // Геттеры
     get income(): number {
         return this._transactions
             .filter(t => t.type === 'income')
@@ -45,17 +61,19 @@ export class Account implements IAccount {
         return [...this._transactions];
     }
 
-    // Методы интерфейса IAccount
+    @LogMethod
     addTransaction(transaction: Transaction): void {
         this._transactions.push(transaction);
     }
 
+    @LogMethod
     removeTransactionById(transactionId: string): boolean {
         const initialLength = this._transactions.length;
         this._transactions = this._transactions.filter(t => t.id !== transactionId);
         return initialLength > this._transactions.length;
     }
 
+    @LogMethod
     getTransactions(): Transaction[] {
         return [...this._transactions];
     }
@@ -77,15 +95,11 @@ export class Account implements IAccount {
 
     async exportTransactionsToCSV(filename: string): Promise<void> {
         try {
-            console.log(`Начинаю экспорт транзакций в файл: ${filename}`);
+            console.log(`Экспорт транзакций в файл: ${filename}`);
             
-            // 1.  CSV строка
             const csvString = this.generateCSV();
-            
-            // 2. путь к файлу
             const filePath = path.resolve(filename);
             
-            // 3. файл асинхронно
             await fs.writeFile(filePath, csvString, 'utf-8');
             
             console.log(`Успешно экспортировано ${this._transactions.length} транзакций в ${filename}`);
@@ -96,11 +110,9 @@ export class Account implements IAccount {
     }
 
     private generateCSV(): string {
-        // Заголовки CSV
         const headers = ['id', 'amount', 'type', 'date', 'description'];
         const escapedHeaders = headers.map(escapeCsvValue).join(',');
         
-        // Данные транзакций
         const rows = this._transactions.map(transaction => {
             const row = [
                 transaction.id,
@@ -112,10 +124,8 @@ export class Account implements IAccount {
             return row.map(escapeCsvValue).join(',');
         });
         
-        // заголовки и данные
         return [escapedHeaders, ...rows].join('\n');
     }
-
 
     async getTransactionStats(): Promise<{
         total: number;
@@ -125,7 +135,6 @@ export class Account implements IAccount {
         average: number;
     }> {
         return new Promise((resolve) => {
-            // Имитация асинхронной операции
             setTimeout(() => {
                 const income = this.income;
                 const expenses = this.expenses;
@@ -140,7 +149,19 @@ export class Account implements IAccount {
                     count,
                     average
                 });
-            }, 100); 
+            }, 100);
         });
+    }
+
+    getSummaryString(): string {
+        // Получить метаданные для свойства transactions
+        const transactionsDescription = getMetadata(
+            Account.prototype, 
+            'transactionsProperty', 
+            'metadata:description'
+        ) || 'транзакции';
+        
+        const summary = this.getSummary();
+        return `Счёт: "${this.name}" | Баланс: ${summary.balance} | Доходы: ${summary.income} | Расходы: ${summary.expenses} | ${transactionsDescription}: ${this._transactions.length}`;
     }
 }
