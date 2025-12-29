@@ -1,13 +1,15 @@
-import { IAccount } from '../interfaces/IAccount.js';
-import { ISummary } from '../interfaces/ISummary.js';
+import { IAccount, ITransaction, ISummary } from '../interfaces/index.js';
 import { Transaction } from './Transaction.js';
 import { AccountUpdate } from '../interfaces/utility-types.js';
 import { v4 as uuidv4 } from 'uuid';
+import { promises as fs } from 'fs';
+import path from 'path';
+import { escapeCsvValue } from '../utils/escapeCsvValue.js';
 
 export class Account implements IAccount {
     private _transactions: Transaction[] = [];
     public id: string;
-    public name: string; 
+    public name: string;
 
     constructor(
         name: string
@@ -16,7 +18,6 @@ export class Account implements IAccount {
         this.name = name;
     }
 
-    // Метод для обновления счёта
     update(update: AccountUpdate): void {
         if (update.name !== undefined) {
             this.name = update.name;
@@ -67,11 +68,79 @@ export class Account implements IAccount {
         };
     }
 
-    // Получение информации о счёте
     getInfo(): { id: string; name: string } {
         return {
             id: this.id,
             name: this.name
         };
+    }
+
+    async exportTransactionsToCSV(filename: string): Promise<void> {
+        try {
+            console.log(`Начинаю экспорт транзакций в файл: ${filename}`);
+            
+            // 1.  CSV строка
+            const csvString = this.generateCSV();
+            
+            // 2. путь к файлу
+            const filePath = path.resolve(filename);
+            
+            // 3. файл асинхронно
+            await fs.writeFile(filePath, csvString, 'utf-8');
+            
+            console.log(`Успешно экспортировано ${this._transactions.length} транзакций в ${filename}`);
+        } catch (error) {
+            console.error(`Ошибка при экспорте в CSV:`, error);
+            throw new Error(`Не удалось экспортировать транзакции: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`);
+        }
+    }
+
+    private generateCSV(): string {
+        // Заголовки CSV
+        const headers = ['id', 'amount', 'type', 'date', 'description'];
+        const escapedHeaders = headers.map(escapeCsvValue).join(',');
+        
+        // Данные транзакций
+        const rows = this._transactions.map(transaction => {
+            const row = [
+                transaction.id,
+                transaction.amount,
+                transaction.type,
+                transaction.date,
+                transaction.description
+            ];
+            return row.map(escapeCsvValue).join(',');
+        });
+        
+        // заголовки и данные
+        return [escapedHeaders, ...rows].join('\n');
+    }
+
+
+    async getTransactionStats(): Promise<{
+        total: number;
+        income: number;
+        expenses: number;
+        count: number;
+        average: number;
+    }> {
+        return new Promise((resolve) => {
+            // Имитация асинхронной операции
+            setTimeout(() => {
+                const income = this.income;
+                const expenses = this.expenses;
+                const total = this.balance;
+                const count = this._transactions.length;
+                const average = count > 0 ? (income + expenses) / count : 0;
+                
+                resolve({
+                    total,
+                    income,
+                    expenses,
+                    count,
+                    average
+                });
+            }, 100); 
+        });
     }
 }

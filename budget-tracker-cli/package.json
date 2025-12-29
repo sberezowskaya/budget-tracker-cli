@@ -12,14 +12,14 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "typescript": "^5.9.3",
-    "tsx": "^4.19.3",
-    "@types/node": "^22.10.6",
+    "@types/moment": "^2.13.0",
+    "@types/node": "^22.19.3",
     "@types/uuid": "^10.0.0",
-    "@types/moment": "^2.13.0"
+    "tsx": "^4.19.3",
+    "typescript": "^5.9.3"
   },
   "dependencies": {
-    "uuid": "^11.0.5",
-    "moment": "^2.30.1"
+    "moment": "^2.30.1",
+    "uuid": "^11.0.5"
   }
 }

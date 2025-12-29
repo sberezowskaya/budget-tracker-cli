@@ -1,156 +1,172 @@
+// src/index.ts
 import { Account } from './classes/Account.js';
 import { Transaction } from './classes/Transaction.js';
 import { AccountManager } from './classes/AccountManager.js';
+import { testEscapeCsvValue } from './utils/escapeCsvValue.js';
+import { promises as fs } from 'fs';
+import path from 'path';
 
-// Импортировать утилитные типы
-import {
-    TransactionUpdate,
-    AccountUpdate,
-    CompleteTransaction,
-    TransactionWithoutDescription,
-    TransactionPreview,
-    AccountInfo,
-    CategoryLimits,
-    TransactionConstructorParams,
-    TransactionInstance,
-    NullableDescription,
-    TransactionFilter
-} from './interfaces/utility-types.js';
+// Функция для очистки тестовых файлов
+async function cleanupTestFiles(): Promise<void> {
+    const files = ['transactions.csv', 'test-export.csv'];
+    for (const file of files) {
+        try {
+            await fs.unlink(file);
+            console.log(` Очищен файл: ${file}`);
+        } catch {
+        }
+    }
+}
 
-console.log("=".repeat(70));
-console.log("ДОМАШНЯЯ РАБОТА №9: Утилитные типы TypeScript");
-console.log("=".repeat(70));
+// Основная асинхронная функция
+async function main() {
+    try {
+        // ==================== 1. Тестирование экранирования CSV ====================
+        console.log("\n1. Тестирование функции экранирования CSV");
+        console.log("   ".repeat(10) + "-".repeat(40));
+        testEscapeCsvValue();
 
-// ==================== 1. Частичное обновление ====================
-console.log("\n1. Частичное обновление (Partial<T>)");
-console.log("   ".repeat(10) + "-".repeat(40));
+        // ==================== 2. Создание тестовых данных ====================
+        console.log("\n2. Создание тестовых данных");
+        console.log("   ".repeat(10) + "-".repeat(40));
+        
+        const account = new Account('Тестовый счёт');
+        
+        // транзакции с разными типами данных
+        account.addTransaction(new Transaction(
+            50000,
+            'income',
+            '2024-01-01',
+            'Зарплата за январь'
+        ));
+        
+        account.addTransaction(new Transaction(
+            15000,
+            'expense',
+            '2024-01-02',
+            'Аренда квартиры'
+        ));
+        
+        account.addTransaction(new Transaction(
+            5000,
+            'expense',
+            '2024-01-03',
+            'Продукты: молоко, хлеб, яйца'
+        ));
+        
+        account.addTransaction(new Transaction(
+            3000,
+            'expense',
+            '2024-01-04',
+            'Кафе "У Петровича"'
+        ));
+        
+        account.addTransaction(new Transaction(
+            10000,
+            'income',
+            '2024-01-05',
+            'Фриланс\n(веб-разработка)'
+        ));
+        
+        console.log(`   Создан счёт: ${account.name}`);
+        console.log(`   Количество транзакций: ${account.getTransactions().length}`);
+        console.log(`   Баланс: ${account.balance}`);
 
-const transaction = new Transaction(1000, 'income', '2023-01-01T00:00:00Z', 'Зарплата');
-console.log("   Исходная транзакция:");
-console.log(`   ${transaction.toString()}`);
+        // ==================== 3. Асинхронная статистика ====================
+        console.log("\n3. Асинхронное получение статистики");
+        console.log("   ".repeat(10) + "-".repeat(40));
+        
+        console.log("   Загружаем статистику...");
+        const stats = await account.getTransactionStats();
+        console.log(`   • Всего транзакций: ${stats.count}`);
+        console.log(`   • Общий доход: ${stats.income}`);
+        console.log(`   • Общий расход: ${stats.expenses}`);
+        console.log(`   • Средняя сумма: ${stats.average.toFixed(2)}`);
+        console.log(`   • Баланс: ${stats.total}`);
 
-// Используем Partial<ITransaction>
-const transactionUpdate: TransactionUpdate = {
-    amount: 1200,
-    description: 'Зарплата с премией'
-};
+        // ==================== 4. Экспорт в CSV ====================
+        console.log("\n4. Экспорт транзакций в CSV файл");
+        console.log("   ".repeat(10) + "-".repeat(40));
+        
+        const filename = 'transactions.csv';
+        
+        try {
+            console.log(` Экспортируем в файл: ${filename}`);
+            await account.exportTransactionsToCSV(filename);
+            
+            const fileInfo = await fs.stat(filename);
+            console.log(`    Файл создан: ${filename}`);
+            console.log(`   Размер файла: ${fileInfo.size} байт`);
+            
+            const fileContent = await fs.readFile(filename, 'utf-8');
+            const lines = fileContent.split('\n').slice(0, 6); // Первые 6 строк
+            console.log("\n   Содержимое файла (первые строки):");
+            lines.forEach((line, index) => {
+                console.log(`   ${index + 1}. ${line}`);
+            });
+            
+        } catch (error) {
+            console.error(`Ошибка при экспорте:`, error instanceof Error ? error.message : error);
+        }
 
-transaction.update(transactionUpdate);
-console.log("\n   После обновления через TransactionUpdate:");
-console.log(`   ${transaction.toString()}`);
+        // ==================== 5. Обработка ошибок ====================
+        console.log("\n5. Тестирование обработки ошибок");
+        console.log("   ".repeat(10) + "-".repeat(40));
+        
+        try {
+            console.log("   Тестируем запись в невалидный путь...");
+            await account.exportTransactionsToCSV('/несуществующая/папка/file.csv');
+        } catch (error) {
+            console.log(`  Ошибка корректно обработана: ${error instanceof Error ? error.message : 'Ошибка записи'}`);
+        }
 
-// Обновление счёта
-const personalAccount = new Account('Личный бюджет');
-console.log(`\n   Исходный счёт: ${personalAccount.name}`);
+        // ==================== 6. Параллельные операции ====================
+        console.log("\n6. Параллельные асинхронные операции");
+        console.log("   ".repeat(10) + "-".repeat(40));
+        
+        console.log("   ⚡ Запускаем параллельные задачи...");
+        
+        const [stats1, stats2] = await Promise.all([
+            account.getTransactionStats(),
+            new Promise((resolve) => {
+                setTimeout(() => resolve('Вторая задача выполнена'), 50);
+            })
+        ]);
+        
+        console.log(`    Статистика: ${JSON.stringify(stats1)}`);
+        console.log(`    ${stats2}`);
 
-const accountUpdate: AccountUpdate = {
-    name: 'Основной счёт'
-};
+        // ==================== 7. Работа с менеджером ====================
+        console.log("\n 7. Асинхронные операции с менеджером счетов");
+        console.log("   ".repeat(10) + "-".repeat(40));
+        
+        const manager = new AccountManager();
+        manager.addAccount(account);
+        
+        const account2 = new Account('Второй счёт');
+        account2.addTransaction(new Transaction(2000, 'income', '2024-01-06', 'Кэшбэк'));
+        manager.addAccount(account2);
+        
+        console.log(`   Менеджер счетов:`);
+        console.log(`   • Всего счетов: ${manager.getAccounts().length}`);
+        console.log(`   • Общий баланс: ${manager.balance}`);
+        
+        // Экспорт со второго счёта
+        await account2.exportTransactionsToCSV('test-export.csv');
+        console.log(`   Экспорт второго счёта завершен`);
 
-personalAccount.update(accountUpdate);
-console.log(`   После обновления через AccountUpdate: ${personalAccount.name}`);
+        // ==================== 8. Очистка тестовых файлов ====================
+        console.log("\n 8. Очистка тестовых файлов");
+        console.log("   ".repeat(10) + "-".repeat(40));
+        
+        await cleanupTestFiles();
 
-// ==================== 2. Обязательные поля и исключения ====================
-console.log("\n2. Обязательные поля и исключения (Required<T>, Omit<T>)");
-console.log("   ".repeat(10) + "-".repeat(40));
 
-// Required - все поля обязательны
-const completeTransaction: CompleteTransaction = {
-    id: '123',
-    amount: 500,
-    type: 'expense',
-    date: '2023-01-05',
-    description: 'Продукты',
-    toString: () => 'Транзакция'
-};
-console.log(`   CompleteTransaction: ${completeTransaction.description}`);
+    } catch (error) {
+        console.error("\nКритическая ошибка в приложении:", error);
+        process.exit(1);
+    }
+}
 
-const transactionWithoutDesc: TransactionWithoutDescription = {
-    id: '456',
-    amount: 300,
-    type: 'expense',
-    date: '2023-01-06'
-};
-console.log(`   TransactionWithoutDescription: ${transactionWithoutDesc.amount}`);
-
-// ==================== 3. Выборка ключевых полей ====================
-console.log("\n3. Выборка ключевых полей (Pick<T>)");
-console.log("   ".repeat(10) + "-".repeat(40));
-
-const transactionPreview: TransactionPreview = transaction.getPreview();
-console.log(`   TransactionPreview:`, transactionPreview);
-
-const accountInfo: AccountInfo = personalAccount.getInfo();
-console.log(`   AccountInfo:`, accountInfo);
-
-// ==================== 4. Словарь лимитов (Record<K, T>) ====================
-console.log("\n4. Словарь лимитов по категориям (Record<K, T>)");
-console.log("   ".repeat(10) + "-".repeat(40));
-
-const limits: CategoryLimits = {
-    income: 10000,
-    expense: 5000
-};
-console.log(`   Лимит доходов: ${limits.income}`);
-console.log(`   Лимит расходов: ${limits.expense}`);
-
-// Проверка лимита
-const checkLimit = (amount: number, type: 'income' | 'expense'): boolean => {
-    return amount <= limits[type];
-};
-
-console.log(`   Проверка лимита (1500 доход): ${checkLimit(1500, 'income')}`);
-console.log(`   Проверка лимита (6000 расход): ${checkLimit(6000, 'expense')}`);
-
-// ==================== 5. Работа с типами функций ====================
-console.log("\n5. Работа с типами функций (ConstructorParameters, InstanceType)");
-console.log("   ".repeat(10) + "-".repeat(40));
-
-// Параметры конструктора Transaction
-const transactionParams: TransactionConstructorParams = [
-    500,
-    'expense',
-    '2023-02-01T00:00:00Z',
-    'Покупка'
-];
-
-// Создать транзакцию из параметров
-const newTransaction: TransactionInstance = new Transaction(...transactionParams);
-console.log(`   Новая транзакция из параметров: ${newTransaction.toString()}`);
-
-// ==================== 6. Необязательные и nullable поля ====================
-console.log("\n6. Необязательные и nullable поля");
-console.log("   ".repeat(10) + "-".repeat(40));
-
-const nullableDesc: NullableDescription = {
-    description: null
-};
-console.log(`   NullableDescription: ${nullableDesc.description}`);
-
-// ==================== 7. Дополнительные примеры ====================
-console.log("\n7. Дополнительные примеры");
-console.log("   ".repeat(10) + "-".repeat(40));
-
-// Filter транзакций
-const filter: TransactionFilter = {
-    type: 'expense'
-};
-
-console.log(`   TransactionFilter:`, filter);
-
-// Работа с менеджером счетов
-const manager = new AccountManager();
-personalAccount.addTransaction(transaction);
-personalAccount.addTransaction(new Transaction(200, 'expense', '2023-01-05T00:00:00Z', 'Продукты'));
-personalAccount.addTransaction(new Transaction(150, 'expense', '2023-01-09T00:00:00Z', 'Коммунальные услуги'));
-
-manager.addAccount(personalAccount);
-
-console.log("\n   Информация о счёте через AccountManager:");
-console.log(`   Баланс: ${manager.balance}`);
-console.log(`   Всего счетов: ${manager.getAccounts().length}`);
-
-console.log("\n   Транзакции основного счёта:");
-personalAccount.getTransactions().forEach((t, i) => {
-    console.log(`   ${i + 1}. ${t.toString()}`);
-});
+// Запуск основной функции
+main().catch(console.error);
