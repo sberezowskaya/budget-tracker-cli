@@ -5,24 +5,10 @@ import { Account } from './Account.js';
 export class AccountManager implements IAccountManager {
     private _accounts: Account[] = [];
 
-    // Геттеры
-    get income(): number {
-        return this._accounts.reduce((sum, account) => sum + account.income, 0);
-    }
-
-    get expenses(): number {
-        return this._accounts.reduce((sum, account) => sum + account.expenses, 0);
-    }
-
-    get balance(): number {
-        return this.income - this.expenses;
-    }
-
     get accounts(): Account[] {
         return [...this._accounts];
     }
 
-    // Методы интерфейса IAccountManager
     addAccount(account: Account): void {
         this._accounts.push(account);
     }
